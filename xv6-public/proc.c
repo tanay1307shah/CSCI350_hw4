@@ -32,8 +32,6 @@ cpuid() {
   return mycpu()-cpus;
 }
 
-
-
 // Must be called with interrupts disabled to avoid the caller being
 // rescheduled between reading lapicid and running through the loop.
 struct cpu*
@@ -538,6 +536,7 @@ procdump(void)
   [RUNNING]   "run   ",
   [ZOMBIE]    "zombie"
   };
+  
   int i;
   struct proc *p;
   char *state;
@@ -564,7 +563,7 @@ procdump(void)
 
 	for (uint i = 0; i < p->sz; i += PGSIZE) {
 		// 
-		if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
+		if((pte = walkpgdir(p->pgdir, (void *) i, 0)) == 0)
 	      panic("copyuvm: pte should exist");
 	    
 	    if(!(*pte & PTE_P))
@@ -578,6 +577,6 @@ procdump(void)
 			cprintf("|\n");
 		}
 		
-	}
+	 }
   }
 }

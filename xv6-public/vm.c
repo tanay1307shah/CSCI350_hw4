@@ -319,13 +319,13 @@ copyuvm_cow(pde_t* pgdir, uint sz)
   pde_t *d;
   pte_t *pte;
   uint pa, i, flags;
-  char *mem;
+  // char *mem;
 
   if((d = setupkvm()) == 0)
     return 0;
 
   
-//  d = pgdir;
+  //  d = pgdir;
 
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
@@ -352,6 +352,7 @@ copyuvm_cow(pde_t* pgdir, uint sz)
       //kfree(mem); No need as no new physical mem allocated
       goto bad;
     }
+
   }
   return d;
 
@@ -382,6 +383,7 @@ copyuvm(pde_t *pgdir, uint sz)
       panic("copyuvm: page not present");
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
+
     if((mem = kalloc()) == 0)
       goto bad;
     memmove(mem, (char*)P2V(pa), PGSIZE);
