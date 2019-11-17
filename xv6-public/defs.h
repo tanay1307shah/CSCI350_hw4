@@ -187,8 +187,6 @@ int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 pde_t*			copyuvm_cow(pde_t*, uint);
 void 			handle_pgflt (void);
-uint 			read_cr2 (void);
-void 			flush_tlb_all (void);
 // pte_t*			walkpgdir(pde_t *pgdir, const void *va, int alloc);
 
 // number of elements in fixed-size array
