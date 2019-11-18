@@ -8,7 +8,8 @@ void testCase2();
 void testCase3();
 
 int main()
-{
+{	
+	printf(1,"\nStarted Test\n\n");
 	int pid, i;
 	// make sure we we'll change two pages.
 	int SIZE = 4096 + 1;

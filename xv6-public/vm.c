@@ -381,7 +381,7 @@ handle_pgflt (void){
 	char *start = (char*)PGROUNDDOWN((uint)va);
 
 
-	cprintf("Handliing pagefault\n");
+	// cprintf("Handliing pagefault\n");
 	pte = walkpgdir(myproc()->pgdir,start,0);
 	if(pte == 0)
 		cprintf("Invalid address");
@@ -401,24 +401,24 @@ handle_pgflt (void){
 
 		if(cnt == 1){
 			cprintf("Page with just one reference, Making page writeable!\n");
-			cprintf("%d\n",PTE_FLAGS(*pte));
+			// cprintf("%d\n",PTE_FLAGS(*pte));
 			*pte |= PTE_W;
-			cprintf("%d\n",PTE_FLAGS(*pte));
-	        *pte &= ~(0x800);
-	        lcr3(V2P(va));
-
-		}else{
+			//cprintf("%d\n",PTE_FLAGS(*pte));
+	    *pte &= ~(0x800);
+	    
+      lcr3(V2P(myproc()->pgdir));
+      //cprintf("Cleared TLB \n");
+		}
+    else{
 			cprintf("Page with more than one reference, Making page writeable!\n");
 			char* mem = kalloc();
 			memmove(mem,(char*)P2V(physcialAdd),PGSIZE);
 
 			uint newPhysicalAdd = V2P(mem);
+      *pte = newPhysicalAdd | flags | PTE_P | PTE_W;
 
-	        *pte = newPhysicalAdd | flags | PTE_P | PTE_W;
-
-	         lcr3(V2P(va));
-
-	         references[physcialAdd/PGSIZE]-=1;
+	    lcr3(V2P(myproc()->pgdir));
+      references[physcialAdd/PGSIZE]-=1;
 		}
 	}
 	else{
