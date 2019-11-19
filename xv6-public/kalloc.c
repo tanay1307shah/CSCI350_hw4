@@ -15,12 +15,14 @@ extern char end[]; // first address after kernel loaded from ELF file
 
 struct run {
   struct run *next;
+  char x;
 };
 
 struct {
   struct spinlock lock;
   int use_lock;
   struct run *freelist;
+  struct run runs[PHYSTOP/PGSIZE];
 } kmem;
 
 // Initialization happens in two phases.

@@ -52,7 +52,6 @@ trap(struct trapframe *tf)
   case T_PGFLT:
     myproc()->tf = tf;
     handle_pgflt();
-    //cprintf("Finished handle_pgflt \n");
     break;
 
   case T_IRQ0 + IRQ_TIMER:

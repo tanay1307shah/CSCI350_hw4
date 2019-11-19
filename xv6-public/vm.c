@@ -280,10 +280,10 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
         panic("kfree");
       char *v = P2V(pa);
 
-      if(references[pa/PGSIZE] > 1)
-      	references[pa/PGSIZE]-=1;
-      else
+      if(references[pa/PGSIZE] == 1)
       	kfree(v);
+      else
+      	references[pa/PGSIZE] = references[pa/PGSIZE] -1;
 
       *pte = 0;
     }
@@ -325,106 +325,75 @@ clearpteu(pde_t *pgdir, char *uva)
 }
 
 
-
-// if(er & FEC_WR){
-//     // Check if the fault is for an address whose page table includes the PTE_COW flag
-//     // If not, kill the program as usual
-//     if(!(*pte & PTE_COW)){
-//       proc->killed = 1;
-//       return;
-//     } else {
-//       pa = PTE_ADDR(*pte);
-//       char *v = p2v(pa);
-//       flags = PTE_FLAGS(*pte);
-
-//       // get reference count for faulty page
-//       int refs = getRefs(v);
-
-//       // page has more than one reference
-//       if(refs > 1){
-//         // allocate a new page
-//         mem = kalloc();
-
-//         // Copies memory from the virtual address gotten from fauly pte and copies PGSIZE bytes to mem
-//         memmove(mem, v, PGSIZE);
-
-//         // virtual address for new page
-//         npa = v2p(mem);
-//         // Point the PTE pointer to the newly allocated page
-//         *pte = npa | flags | PTE_P | PTE_W;
-
-//         // invalidate TLB
-//         invlpg((void *)va);
-
-//         // decrement ref count for old page
-//         kdec(v);
-//       }
-//       // page has only one reference
-//       else {
-//         *pte |= PTE_W;
-//         *pte &= ~PTE_COW;
-
-//         invlpg((void *)va);
-//       }
-//     }
-//   } else{ // not a write fault
-//     proc->killed = 1;
-//     return;
-//   }
-
-
 void
 handle_pgflt (void){
+
+  // uint i = 1024*1024*1024;
+  //   while(i >0){
+  //     i--;
+  //   }
+
+
 	pte_t *pte;
-	uint va = rcr2();
-
-	char *start = (char*)PGROUNDDOWN((uint)va);
-
-
-	// cprintf("Handliing pagefault\n");
-	pte = walkpgdir(myproc()->pgdir,start,0);
-	if(pte == 0)
-		cprintf("Invalid address");
+	uint physcialAdd, flags, va = rcr2();
+  char* mem;
 
 
-	if(myproc()->tf->err & FEC_WR){
-		
-		if(!(*pte & 0x800)){
-	      myproc()->killed = 1;
-	      return;
-	  	}
+  if(va >= KERNBASE || (pte = walkpgdir(myproc()->pgdir,(void*)va,0)) == 0)
+    cprintf("Invalid address");
 
-	  	uint physcialAdd = PTE_ADDR(*pte);
-	  	uint flags = PTE_FLAGS(*pte);
 
-		char cnt = references[physcialAdd/PGSIZE];
+	// if(!(*pte & 0x800)){
+	//     myproc()->killed = 1;
+	//     return;
+	// }
 
-		if(cnt == 1){
-			cprintf("Page with just one reference, Making page writeable!\n");
-			// cprintf("%d\n",PTE_FLAGS(*pte));
-			*pte |= PTE_W;
-			//cprintf("%d\n",PTE_FLAGS(*pte));
-	    *pte &= ~(0x800);
-	    
-      lcr3(V2P(myproc()->pgdir));
-      //cprintf("Cleared TLB \n");
+
+	if(*pte & PTE_W){
+    panic("Page fault already writeable");
+  }
+
+  physcialAdd = PTE_ADDR(*pte);
+  flags = PTE_FLAGS(*pte);
+
+
+	char cnt = references[physcialAdd/PGSIZE];
+
+	if(cnt == 1){	
+		*pte |= PTE_W;
+		// *pte &= ~(0x800);
+    lcr3(V2P(myproc()->pgdir));
+
+	}else{
+
+    
+		if((mem = kalloc()) == 0){
+    //  cprintf("Fuck m");
+			myproc()->killed = 1;
+			return;
 		}
-    else{
-			cprintf("Page with more than one reference, Making page writeable!\n");
-			char* mem = kalloc();
-			memmove(mem,(char*)P2V(physcialAdd),PGSIZE);
+	
+		memmove(mem,(char*)P2V(physcialAdd),PGSIZE);
 
-			uint newPhysicalAdd = V2P(mem);
-      *pte = newPhysicalAdd | flags | PTE_P | PTE_W;
+		//cprintf("%d %d\n",physcialAdd>>12,flags);
+		flags |= PTE_W;
+		flags |= PTE_P;
+		flags |= PTE_U;
+    // flags &= ~(0x800);
 
-	    lcr3(V2P(myproc()->pgdir));
-      references[physcialAdd/PGSIZE]-=1;
-		}
+	//	cprintf("%d %d\n",V2P(mem)>>12,flags);
+
+    *pte = V2P(mem);
+    *pte |= flags;
+
+    lcr3(V2P(myproc()->pgdir));
+    // cprintf("%d\n",references[physcialAdd/PGSIZE]);
+    references[physcialAdd/PGSIZE] = references[physcialAdd/PGSIZE] -1;
+    // cprintf("%d\n",references[physcialAdd/PGSIZE]);
+    
+	
 	}
-	else{
-		myproc()->killed =1;
-		return;
-	}
+	//lcr3(V2P(myproc()->pgdir));
 
 }
 
@@ -439,9 +408,6 @@ copyuvm_cow(pde_t* pgdir, uint sz)
   if((d = setupkvm()) == 0)
     return 0;
 
-  
-  //  d = pgdir;
-
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
@@ -450,17 +416,15 @@ copyuvm_cow(pde_t* pgdir, uint sz)
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
 
-    //Check if the page is a Shareable read only or non sharaebale read only
-    pa |= 0x800; // pa | 1000 0000 0000
+    // //Check if the page is a Shareable read only or non sharaebale read only
+    flags |= 0x800; // pa | 1000 0000 0000
 
     //Making the page readable only
-    flags &= ~PTE_W;
+    flags &= 0xFFD;
+///
 
 
-    //Not Useful
-    // if((mem = kalloc()) == 0)
-    //   goto bad;
-    // memmove(mem, (char*)P2V(pa), PGSIZE);
+ 
     
     //Point child page dir to parent page dir
     if(mappages(d, (void*)i, PGSIZE, pa, flags) < 0) {
@@ -491,8 +455,8 @@ copyuvm(pde_t *pgdir, uint sz)
   pde_t *d;
   pte_t *pte;
   uint pa, i, flags;
-  char *mem;
-
+/*  char *mem;
+*/
   if((d = setupkvm()) == 0)
     return 0;
   for(i = 0; i < sz; i += PGSIZE){
@@ -503,11 +467,12 @@ copyuvm(pde_t *pgdir, uint sz)
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
 
-    if((mem = kalloc()) == 0)
-      goto bad;
-    memmove(mem, (char*)P2V(pa), PGSIZE);
-    if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
-      kfree(mem);
+    flags &= ~PTE_W;
+    // if((mem = kalloc()) == 0)
+    //   goto bad;
+    // memmove(mem, (char*)P2V(pa), PGSIZE);
+    if(mappages(d, (void*)i, PGSIZE, pa, flags) < 0) {
+      //kfree(mem);
       goto bad;
     }
   }

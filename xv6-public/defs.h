@@ -68,6 +68,9 @@ char*           kalloc(void);
 void            kfree(char*);
 void            kinit1(void*, void*);
 void            kinit2(void*, void*);
+void            kinc(char*);
+void            kdec(char*);
+int 			getRefs(char*);
 
 // kbd.c
 void            kbdintr(void);
