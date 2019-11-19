@@ -10,7 +10,7 @@
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
 
-char references[PHYSTOP / PGSIZE];
+unsigned char references[PHYSTOP / PGSIZE];
 
 
 // Set up CPU's kernel segment descriptors.
@@ -327,13 +327,6 @@ clearpteu(pde_t *pgdir, char *uva)
 
 void
 handle_pgflt (void){
-
-  // uint i = 1024*1024*1024;
-  //   while(i >0){
-  //     i--;
-  //   }
-
-
 	pte_t *pte;
 	uint physcialAdd, flags, va = rcr2();
   char* mem;
@@ -343,14 +336,8 @@ handle_pgflt (void){
     cprintf("Invalid address");
 
 
-	// if(!(*pte & 0x800)){
-	//     myproc()->killed = 1;
-	//     return;
-	// }
-
-
 	if(*pte & PTE_W){
-    panic("Page fault already writeable");
+   return;
   }
 
   physcialAdd = PTE_ADDR(*pte);
@@ -361,14 +348,12 @@ handle_pgflt (void){
 
 	if(cnt == 1){	
 		*pte |= PTE_W;
-		// *pte &= ~(0x800);
     lcr3(V2P(myproc()->pgdir));
 
 	}else{
 
     
 		if((mem = kalloc()) == 0){
-    //  cprintf("Fuck m");
 			myproc()->killed = 1;
 			return;
 		}
@@ -455,8 +440,8 @@ copyuvm(pde_t *pgdir, uint sz)
   pde_t *d;
   pte_t *pte;
   uint pa, i, flags;
-/*  char *mem;
-*/
+  // char *mem;
+
   if((d = setupkvm()) == 0)
     return 0;
   for(i = 0; i < sz; i += PGSIZE){
@@ -464,22 +449,26 @@ copyuvm(pde_t *pgdir, uint sz)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
+   *pte &= ~ PTE_W;
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
 
-    flags &= ~PTE_W;
+    // flags &= ~PTE_W;
     // if((mem = kalloc()) == 0)
     //   goto bad;
     // memmove(mem, (char*)P2V(pa), PGSIZE);
     if(mappages(d, (void*)i, PGSIZE, pa, flags) < 0) {
-      //kfree(mem);
       goto bad;
     }
+
+    references[pa/PGSIZE]+=1;
   }
+  lcr3(V2P(pgdir));  
   return d;
 
 bad:
   freevm(d);
+  lcr3(V2P(pgdir));    
   return 0;
 }
 

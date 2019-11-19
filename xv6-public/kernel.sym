@@ -1,5 +1,5 @@
 80100000 .text
-801071c0 .rodata
+801071e0 .rodata
 80107c54 .stab
 80107c55 .stabstr
 80108000 .data
@@ -18,7 +18,7 @@
 8010a558 panicked
 80100410 consputc
 80100580 printint
-80107230 digits.1541
+80107250 digits.1541
 00000000 exec.c
 00000000 file.c
 00000000 fs.c
@@ -36,9 +36,9 @@
 00000000 kalloc.c
 00000000 kbd.c
 8010a5b4 shift.1382
-80107560 shiftcode
-80107460 togglecode
-80107440 charcode.1383
+80107580 shiftcode
+80107480 togglecode
+80107460 charcode.1383
 80108200 normalmap
 80108100 shiftmap
 80108000 ctlmap
@@ -57,12 +57,12 @@
 80103610 allocproc
 8010a000 first.1583
 8010a5b8 initproc
-80107874 states.1616
+80107894 states.1616
 00000000 sleeplock.c
 00000000 spinlock.c
 00000000 string.c
 00000000 syscall.c
-80107900 syscalls
+80107920 syscalls
 00000000 sysfile.c
 801049c0 create
 80104b60 argfd.constprop.0
@@ -183,7 +183,7 @@
 80100d60 fileinit
 80104320 initlock
 80106097 vector128
-80107110 copyout
+80107130 copyout
 80105ef0 vector81
 80103d90 sleep
 80102780 microdelay
@@ -243,7 +243,7 @@
 80106547 vector228
 80105d91 vector42
 80106019 vector114
-801070d0 uva2ka
+801070f0 uva2ka
 801062cb vector175
 8010614b vector143
 80100d80 filealloc
@@ -324,7 +324,7 @@
 80103400 pipewrite
 801046f0 strncpy
 80105e96 vector71
-80107030 copyuvm
+80107010 copyuvm
 8010ffc0 ftable
 80106217 vector160
 801048c0 argptr
@@ -385,7 +385,7 @@
 80102400 kinit1
 80105dd9 vector50
 80105ca0 vector15
-80106f70 copyuvm_cow
+80106f50 copyuvm_cow
 801061ab vector151
 80105f02 vector83
 80105f38 vector89
